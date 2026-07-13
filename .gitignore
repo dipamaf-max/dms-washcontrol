@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Backend
+backend/dist/
+backend/coverage/
+backend/.env
+backend/uploads/*
+!backend/uploads/.gitkeep
+*.log
+
+# Web admin
+web-admin/dist/
+web-admin/.env.local
+
+# Flutter / Android build outputs (large binaries, never needed in git)
+mobile/build/
+mobile/.dart_tool/
+mobile/.flutter-plugin-registrant/
+mobile/android/.gradle/
+mobile/android/app/build/
+mobile/android/local.properties
+mobile/android/key.properties
+mobile/android/app/*.jks
+mobile/android/app/google-services.json
+mobile/ios/Pods/
+mobile/*.g.dart
+mobile/*.freezed.dart
+
+# Secrets / keystores
+*.jks
+*.keystore
+key.properties
+*.env
+.env
+.env.local
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Firebase
+**/google-services.json
+**/GoogleService-Info.plist

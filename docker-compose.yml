@@ -1,0 +1,60 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: dms-washcontrol-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: dms_washcontrol
+    ports:
+      - "5432:5432"
+    volumes:
+      - dms_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    container_name: dms-washcontrol-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/dms_washcontrol?schema=public"
+      PORT: 3000
+      CORS_ORIGIN: "http://localhost:5173"
+      # Replace these with your own secrets for any real deployment (see README).
+      JWT_ACCESS_SECRET: "e0450bf80c4b3f34932fb0527b2a79773f7e9b4e096be87a7ce70f466b413f9fdb771813f0ce5a0d5e9faa50fe3cdd2f"
+      JWT_ACCESS_EXPIRES_IN: "15m"
+      JWT_REFRESH_SECRET: "780e86aa1a60fb856c6e50598bf2c6bda92a9510cd3ebb6273e170c49a80930147de3ef341421859edae734f8f7ef1ef"
+      JWT_REFRESH_EXPIRES_IN: "7d"
+      UPLOADS_DIR: "./uploads"
+    ports:
+      - "3000:3000"
+    volumes:
+      - dms_uploads:/app/uploads
+    command: sh -c "npx prisma migrate deploy && npx prisma db seed && node dist/src/main.js"
+
+  web-admin:
+    build:
+      context: ./web-admin
+    container_name: dms-washcontrol-web
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      VITE_API_URL: "http://localhost:3000/api/v1"
+    ports:
+      - "5173:80"
+
+volumes:
+  dms_postgres_data:
+  dms_uploads:

@@ -1,0 +1,417 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================================================
+// ENUMS
+// ==========================================================================
+
+enum Role {
+  ADMIN
+  OWNER
+  EMPLOYEE
+}
+
+enum SubscriptionPlanType {
+  STARTER
+  BUSINESS
+  PREMIUM
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  UNPAID
+  CANCELLED
+}
+
+enum PaymentProvider {
+  ORANGE_MONEY
+  WAVE
+  MTN_MONEY
+  MOOV_MONEY
+  CASH
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum WashOrderStatus {
+  PENDING
+  IN_PROGRESS
+  DONE
+  DELIVERED
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum InventoryCategory {
+  SHAMPOO
+  WAX
+  CLEANING_PRODUCT
+  ACCESSORY
+}
+
+enum InventoryMovementType {
+  IN
+  OUT
+}
+
+enum VehicleType {
+  CAR
+  SUV
+  MOTORCYCLE
+  VAN
+  TRUCK
+  OTHER
+}
+
+// ==========================================================================
+// CORE / AUTH
+// ==========================================================================
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  phone        String?  @unique
+  passwordHash String
+  fullName     String
+  role         Role
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  ownedStations Station[]     @relation("StationOwner")
+  employee      Employee?
+  deviceTokens  DeviceToken[]
+  notifications Notification[]
+  activityLogs  ActivityLog[]
+
+  @@map("users")
+}
+
+model DeviceToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  platform  String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  createdAt DateTime @default(now())
+
+  @@map("device_tokens")
+}
+
+// ==========================================================================
+// STATION
+// ==========================================================================
+
+model Station {
+  id        String   @id @default(uuid())
+  name      String
+  address   String
+  phone     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner   User   @relation("StationOwner", fields: [ownerId], references: [id])
+  ownerId String
+
+  employees     Employee[]
+  vehicles      Vehicle[]
+  customers     Customer[]
+  washOrders    WashOrder[]
+  transactions  Transaction[]
+  inventory     InventoryItem[]
+  services      Service[]
+  subscriptions Subscription[]
+
+  @@map("stations")
+}
+
+model Service {
+  id            String      @id @default(uuid())
+  name          String
+  description   String?
+  price         Decimal     @db.Decimal(12, 2)
+  durationMinutes Int
+  isActive      Boolean     @default(true)
+  station       Station     @relation(fields: [stationId], references: [id], onDelete: Cascade)
+  stationId     String
+  washOrders    WashOrder[]
+
+  @@map("services")
+}
+
+// ==========================================================================
+// EMPLOYEE
+// ==========================================================================
+
+model Employee {
+  id             String   @id @default(uuid())
+  position       String
+  commissionRate Decimal  @db.Decimal(5, 2) @default(0)
+  hiredAt        DateTime @default(now())
+  isActive       Boolean  @default(true)
+
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String  @unique
+  station   Station @relation(fields: [stationId], references: [id], onDelete: Cascade)
+  stationId String
+
+  attendances Attendance[]
+  washOrders  WashOrder[]
+
+  @@map("employees")
+}
+
+model Attendance {
+  id         String    @id @default(uuid())
+  date       DateTime  @default(now())
+  checkIn    DateTime?
+  checkOut   DateTime?
+  present    Boolean   @default(true)
+
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId String
+
+  @@map("attendances")
+}
+
+// ==========================================================================
+// CUSTOMER / VEHICLE
+// ==========================================================================
+
+model Customer {
+  id             String   @id @default(uuid())
+  fullName       String
+  phone          String
+  loyaltyPoints  Int      @default(0)
+  createdAt      DateTime @default(now())
+
+  station   Station @relation(fields: [stationId], references: [id], onDelete: Cascade)
+  stationId String
+
+  vehicles   Vehicle[]
+  washOrders WashOrder[]
+
+  @@unique([stationId, phone])
+  @@map("customers")
+}
+
+model Vehicle {
+  id           String      @id @default(uuid())
+  plateNumber  String
+  type         VehicleType
+  brand        String?
+  model        String?
+  color        String?
+  qrCodeToken  String      @unique @default(uuid())
+  createdAt    DateTime    @default(now())
+
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String
+  station    Station  @relation(fields: [stationId], references: [id], onDelete: Cascade)
+  stationId  String
+
+  photos     VehiclePhoto[]
+  washOrders WashOrder[]
+
+  @@unique([stationId, plateNumber])
+  @@map("vehicles")
+}
+
+model VehiclePhoto {
+  id        String   @id @default(uuid())
+  url       String
+  stage     String // "before" | "after"
+  createdAt DateTime @default(now())
+
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  vehicleId String
+
+  washOrder   WashOrder? @relation(fields: [washOrderId], references: [id])
+  washOrderId String?
+
+  @@map("vehicle_photos")
+}
+
+// ==========================================================================
+// WASH ORDER
+// ==========================================================================
+
+model WashOrder {
+  id          String          @id @default(uuid())
+  status      WashOrderStatus @default(PENDING)
+  price       Decimal         @db.Decimal(12, 2)
+  arrivedAt   DateTime        @default(now())
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  deliveredAt DateTime?
+  createdAt   DateTime        @default(now())
+
+  station  Station @relation(fields: [stationId], references: [id], onDelete: Cascade)
+  stationId String
+
+  customer   Customer @relation(fields: [customerId], references: [id])
+  customerId String
+
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id])
+  vehicleId String
+
+  service   Service @relation(fields: [serviceId], references: [id])
+  serviceId String
+
+  employee   Employee? @relation(fields: [employeeId], references: [id])
+  employeeId String?
+
+  photos       VehiclePhoto[]
+  transactions Transaction[]
+
+  @@map("wash_orders")
+}
+
+// ==========================================================================
+// FINANCE
+// ==========================================================================
+
+model Transaction {
+  id          String          @id @default(uuid())
+  type        TransactionType
+  amount      Decimal         @db.Decimal(12, 2)
+  category    String
+  description String?
+  date        DateTime        @default(now())
+
+  station   Station @relation(fields: [stationId], references: [id], onDelete: Cascade)
+  stationId String
+
+  washOrder   WashOrder? @relation(fields: [washOrderId], references: [id])
+  washOrderId String?
+
+  @@map("transactions")
+}
+
+// ==========================================================================
+// INVENTORY
+// ==========================================================================
+
+model InventoryItem {
+  id           String            @id @default(uuid())
+  name         String
+  category     InventoryCategory
+  quantity     Decimal           @db.Decimal(12, 2) @default(0)
+  unit         String
+  alertThreshold Decimal         @db.Decimal(12, 2) @default(0)
+  createdAt    DateTime          @default(now())
+
+  station   Station @relation(fields: [stationId], references: [id], onDelete: Cascade)
+  stationId String
+
+  movements InventoryMovement[]
+
+  @@map("inventory_items")
+}
+
+model InventoryMovement {
+  id        String                @id @default(uuid())
+  type      InventoryMovementType
+  quantity  Decimal               @db.Decimal(12, 2)
+  reason    String?
+  date      DateTime              @default(now())
+
+  item   InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId String
+
+  @@map("inventory_movements")
+}
+
+// ==========================================================================
+// SUBSCRIPTION (SaaS billing)
+// ==========================================================================
+
+model SubscriptionPlan {
+  id            String               @id @default(uuid())
+  type          SubscriptionPlanType @unique
+  name          String
+  monthlyPrice  Decimal              @db.Decimal(12, 2)
+  maxEmployees  Int?
+  maxStations   Int?
+
+  subscriptions Subscription[]
+
+  @@map("subscription_plans")
+}
+
+model Subscription {
+  id        String             @id @default(uuid())
+  status    SubscriptionStatus @default(ACTIVE)
+  startDate DateTime           @default(now())
+  endDate   DateTime
+  createdAt DateTime           @default(now())
+
+  station   Station @relation(fields: [stationId], references: [id], onDelete: Cascade)
+  stationId String
+
+  plan   SubscriptionPlan @relation(fields: [planId], references: [id])
+  planId String
+
+  payments Payment[]
+
+  @@map("subscriptions")
+}
+
+model Payment {
+  id                String          @id @default(uuid())
+  amount            Decimal         @db.Decimal(12, 2)
+  provider          PaymentProvider
+  status            PaymentStatus   @default(PENDING)
+  providerReference String?
+  createdAt         DateTime        @default(now())
+
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  subscriptionId String
+
+  @@map("payments")
+}
+
+// ==========================================================================
+// NOTIFICATIONS / SECURITY
+// ==========================================================================
+
+model Notification {
+  id        String   @id @default(uuid())
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  @@map("notifications")
+}
+
+model ActivityLog {
+  id        String   @id @default(uuid())
+  action    String
+  entity    String
+  entityId  String?
+  details   Json?
+  createdAt DateTime @default(now())
+
+  user   User?   @relation(fields: [userId], references: [id])
+  userId String?
+
+  @@map("activity_logs")
+}
