@@ -34,7 +34,7 @@ dms-washcontrol/
 6. **Finances** — transactions entrées/dépenses, rapports journaliers/mensuels
 7. **Employés** — présence (check-in/out), commission, performance
 8. **Stock (Inventory)** — entrées/sorties, alertes de stock faible
-9. **Abonnement SaaS** — plans STARTER (10 000 FCFA), BUSINESS (20 000 FCFA), PREMIUM (35 000 FCFA), expiration automatique quotidienne
+9. **Abonnement SaaS** — plans STARTER (10 000 FCFA), BUSINESS (15 000 FCFA), PREMIUM (20 000 FCFA), expiration automatique quotidienne
 10. **Tableau de bord** — CA du jour, véhicules lavés, employés actifs, dépenses, bénéfices, meilleurs clients
 11. **QR Code** — génération et scan pour retrouver un véhicule et son historique
 12. **Notifications** — Firebase Cloud Messaging (à connecter à un vrai projet Firebase)

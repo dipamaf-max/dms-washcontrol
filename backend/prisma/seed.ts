@@ -22,7 +22,7 @@ async function main() {
     create: {
       type: SubscriptionPlanType.BUSINESS,
       name: 'Business',
-      monthlyPrice: 20000,
+      monthlyPrice: 15000,
       maxEmployees: 10,
       maxStations: 3,
     },
@@ -34,7 +34,7 @@ async function main() {
     create: {
       type: SubscriptionPlanType.PREMIUM,
       name: 'Premium',
-      monthlyPrice: 35000,
+      monthlyPrice: 20000,
       maxEmployees: null,
       maxStations: null,
     },
