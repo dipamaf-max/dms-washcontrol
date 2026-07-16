@@ -95,7 +95,14 @@ Voir [backend/.env.example](backend/.env.example) : connexion PostgreSQL, secret
 ## Intégrations à finaliser
 
 - **Firebase Cloud Messaging** : guide pas-à-pas dans [docs/FIREBASE_SETUP.md](docs/FIREBASE_SETUP.md). Sans configuration, les notifications push sont désactivées silencieusement côté backend (le reste de l'application fonctionne normalement) ; côté mobile, le plugin Gradle `google-services` étant déjà câblé, **la compilation Android échouera** tant que `mobile/android/app/google-services.json` n'existe pas.
-- **Mobile Money (Orange Money, MTN, Moov, Wave via GeniusPay)** : guide complet dans [docs/GENIUSPAY_INTEGRATION.md](docs/GENIUSPAY_INTEGRATION.md). `backend/src/subscriptions/mobile-money.service.ts` est câblé sur la vraie API GeniusPay (initiation de paiement + vérification de statut + webhook signé HMAC-SHA256 sur `/api/v1/webhooks/geniuspay`). Les trois variables (`GENIUSPAY_API_KEY` / `GENIUSPAY_API_SECRET` / `GENIUSPAY_WEBHOOK_SECRET`) sont configurées avec de vraies clés **Sandbox** — l'initiation de paiement a été testée en conditions réelles (HTTP 201, lien de paiement généré). ⚠️ L'URL du webhook enregistrée côté GeniusPay est un domaine provisoire (`dms-washcontrol.com`) à remplacer par la vraie URL publique du backend au moment du déploiement. Passage en clés **Live** possible une fois le KYC validé à 3/3.
+- **Mobile Money (Orange Money, MTN, Moov, Wave via GeniusPay)** : guide complet dans [docs/GENIUSPAY_INTEGRATION.md](docs/GENIUSPAY_INTEGRATION.md). `backend/src/subscriptions/mobile-money.service.ts` est câblé sur la vraie API GeniusPay (initiation de paiement + vérification de statut + webhook signé HMAC-SHA256 sur `/api/v1/webhooks/geniuspay`). Les trois variables (`GENIUSPAY_API_KEY` / `GENIUSPAY_API_SECRET` / `GENIUSPAY_WEBHOOK_SECRET`) sont configurées avec de vraies clés **Sandbox**, et le webhook GeniusPay pointe vers l'URL réelle de production ci-dessous. Passage en clés **Live** possible une fois le KYC validé à 3/3.
+
+## Déploiement (Render)
+
+- **Backend** : déployé sur Render (Docker, plan gratuit) → `https://dms-washcontrol.onrender.com/api/v1`. Base PostgreSQL Render également sur plan gratuit (`dms-washcontrol-db`, région Frankfurt, **expire le 15 août 2026** sauf passage sur un plan payant). Les migrations Prisma s'exécutent automatiquement au démarrage du conteneur (`prisma migrate deploy` dans le `CMD` du Dockerfile).
+- ⚠️ **Plan gratuit Render = disque éphémère** : les fichiers uploadés dans `backend/uploads` (photos avant/après véhicules) sont **perdus à chaque redéploiement ou redémarrage**. Pour un usage réel il faudra soit un disque persistant Render (payant), soit un stockage externe (S3, Cloudinary...).
+- ⚠️ L'instance gratuite Render se met en veille après inactivité ; la première requête après une pause peut prendre 30-60 secondes.
+- `CORS_ORIGIN` est actuellement configuré pour le développement local — à mettre à jour avec l'URL du dashboard web une fois celui-ci déployé.
 
 ## Comptes et rôles
 

@@ -27,8 +27,10 @@ GENIUSPAY_WEBHOOK_SECRET="whsec_..."
 
 Configure ensuite dans le tableau de bord GeniusPay l'URL de webhook :
 ```
-https://ton-domaine.com/api/v1/webhooks/geniuspay
+https://dms-washcontrol.onrender.com/api/v1/webhooks/geniuspay
 ```
+
+✅ Backend déployé sur Render (plan gratuit) et webhook Sandbox configuré et actif avec cette URL.
 
 ⚠️ Cette URL doit être **publiquement accessible**. En développement local, utilise un tunnel (ngrok, Cloudflare Tunnel) si tu veux tester les webhooks avant la mise en production.
 
